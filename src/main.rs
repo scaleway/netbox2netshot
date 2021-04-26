@@ -33,12 +33,16 @@ struct Opt {
     #[structopt(long, help = "The Netbox token", env, hide_env_values = true)]
     netbox_token: String,
 
-    #[structopt(long, default_value = "", help = "The querystring to use to select the devices from netbox", env)]
-    netbox_device_filter: String,
+    #[structopt(
+        long,
+        default_value = "",
+        help = "The querystring to use to select the devices from netbox",
+        env
+    )]
+    netbox_devices_filter: String,
 
     #[structopt(short, long, help = "Check mode, will not push any change to Netshot")]
     check: bool,
-
 }
 
 /// Main application entrypoint
@@ -61,7 +65,10 @@ async fn main() -> Result<(), reqwest::Error> {
     let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token).unwrap();
     let netbox_ping = netbox_client.ping().await.unwrap();
 
-    let netbox_devices = netbox_client.get_devices(opt.netbox_device_filter).await.unwrap();
+    let netbox_devices = netbox_client
+        .get_devices(&opt.netbox_devices_filter)
+        .await
+        .unwrap();
 
     Ok(())
 }

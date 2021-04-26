@@ -1,8 +1,10 @@
 use reqwest::header::{HeaderMap, HeaderValue};
-use std::error::Error;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::error::Error;
 
 const APP_USER_AGENT: &str = "netbox2netshot";
+const API_LIMIT: u32 = 100;
 
 #[derive(Debug)]
 pub struct NetboxClient {
@@ -12,26 +14,36 @@ pub struct NetboxClient {
 }
 
 /// Represent the primary_ip field from the DCIM device API call
-struct PrimaryIP {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PrimaryIP {
     id: u32,
     family: u8,
     address: String,
 }
 
 /// Represent the required information from the DCIM device API call
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Device {
     id: u32,
-    name: String,
-    primary_ip: PrimaryIP,
+    name: Option<String>,
+    primary_ip: Option<PrimaryIP>,
 }
 
 /// Represent the API response from /api/devim/devices call
 #[derive(Debug, Serialize, Deserialize)]
-struct NetboxDCIMDeviceList {
+pub struct NetboxDCIMDeviceList {
     count: u32,
-    next: String,
-    previous: String,
+    next: Option<String>,
+    previous: Option<String>,
     results: Vec<Device>,
+}
+
+/// Extract the offset from the URL returned from the API
+fn extract_offset(url_string: &String) -> Result<u32, Box<dyn Error>> {
+    let url = reqwest::Url::parse(url_string).unwrap();
+    let args: HashMap<String, String> = url.query_pairs().into_owned().collect();
+    let offset_string = args.get("offset").unwrap();
+    Ok(offset_string.parse().unwrap())
 }
 
 impl NetboxClient {
@@ -67,16 +79,52 @@ impl NetboxClient {
         Ok(response.status() == 200)
     }
 
-    pub async fn get_devices_page(&self, query_string: String, limit: u8, offset: u8) -> Result<Vec<Device>, Box<dyn Error>> {
-        let url = format!("{}/api/dcim/devices/?limit={}&offset={}&{}", self.url, limit, offset, query_string);
-        let page : NetboxDCIMDeviceList = self.client.get(url).send().await?.json().await?;
-        Ok(response)
-
+    /// Get a single device page
+    pub async fn get_devices_page(
+        &self,
+        query_string: &String,
+        limit: u32,
+        offset: u32,
+    ) -> Result<NetboxDCIMDeviceList, Box<dyn Error>> {
+        let url = format!(
+            "{}/api/dcim/devices/?limit={}&offset={}&{}",
+            self.url, limit, offset, query_string
+        );
+        let page: NetboxDCIMDeviceList = self.client.get(url).send().await?.json().await?;
+        Ok(page)
     }
 
     /// Get the devices using the given filter
-    pub async fn get_devices(&self, query_string: String) -> Result<Vec<Device>, Box<dyn Error>> {
-        let mut devices : Vec<Device> = Vec::new();
+    pub async fn get_devices(&self, query_string: &String) -> Result<Vec<Device>, Box<dyn Error>> {
+        let mut devices: Vec<Device> = Vec::new();
+        let mut offset = 0;
+
+        loop {
+            let mut response = self
+                .get_devices_page(&query_string, API_LIMIT, offset)
+                .await
+                .unwrap();
+
+            devices.append(&mut response.results);
+
+            let pages_count = response.count / API_LIMIT;
+            log::debug!(
+                "Got {} devices on the {} matches (page {}/{})",
+                devices.len(),
+                response.count,
+                (offset / API_LIMIT),
+                pages_count
+            );
+
+            match response.next {
+                Some(x) => {
+                    offset = extract_offset(&x).unwrap();
+                }
+                None => break,
+            }
+        }
+
+        log::info!("Fetched {} devices from Netbox", devices.len());
         Ok(devices)
     }
 }
