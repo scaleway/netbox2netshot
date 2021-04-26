@@ -1,7 +1,6 @@
 mod netbox;
 
-extern crate serde;
-
+use anyhow::Result;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use structopt::StructOpt;
