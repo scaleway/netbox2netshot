@@ -1,6 +1,6 @@
 mod netbox;
 
-use anyhow::Result;
+use anyhow::{Error, Result};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use structopt::StructOpt;
@@ -46,28 +46,24 @@ struct Opt {
 
 /// Main application entrypoint
 #[tokio::main]
-async fn main() -> Result<(), reqwest::Error> {
+async fn main() -> Result<(), Error> {
     let opt = Opt::from_args();
     let mut logging_level = LevelFilter::Info;
     if opt.debug {
         logging_level = LevelFilter::Debug;
     }
 
-    SimpleLogger::new()
-        .with_level(logging_level)
-        .init()
-        .unwrap();
+    SimpleLogger::new().with_level(logging_level).init()?;
 
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token).unwrap();
-    let netbox_ping = netbox_client.ping().await.unwrap();
+    let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
+    let netbox_ping = netbox_client.ping().await?;
 
     let netbox_devices = netbox_client
         .get_devices(&opt.netbox_devices_filter)
-        .await
-        .unwrap();
+        .await?;
 
     Ok(())
 }

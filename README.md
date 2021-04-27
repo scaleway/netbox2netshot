@@ -14,7 +14,9 @@ The tool is coded in Rust and doesn't required any dependency installed
 
 Gather a pre-built binary or install it using Cargo
 
-TODO: Improve this
+```bash
+cargo install netbox2netshot
+```
 
 ### Parameters
 
