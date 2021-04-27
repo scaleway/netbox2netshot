@@ -1,0 +1,13 @@
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "url": "http://netbox.example.org/api/dcim/devices/1/",
+            "name": "test-device-without-primary-ip",
+            "primary_ip": null
+        }
+    ]
+}
