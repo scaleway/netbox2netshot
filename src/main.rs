@@ -58,8 +58,15 @@ async fn main() -> Result<(), Error> {
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client = netbox2netshot::netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
-    let netbox_ping = netbox_client.ping().await?;
+    let netbox_client =
+        netbox2netshot::netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
+    let _netbox_ping = netbox_client.ping().await?;
+
+    let netshot_client =
+        netbox2netshot::netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
+    let _netshot_ping = netshot_client.ping().await?;
+
+    let netshot_devices = netshot_client.get_devices().await?;
 
     let netbox_devices = netbox_client
         .get_devices(&opt.netbox_devices_filter)

@@ -1,8 +1,8 @@
+use super::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use super::common::APP_USER_AGENT;
 
 const API_LIMIT: u32 = 100;
 const PATH_PING: &str = "/api/dcim/devices/?name=netbox2netshot-ping";
@@ -73,6 +73,7 @@ impl NetboxClient {
         }
         let http_client = reqwest::Client::builder()
             .user_agent(APP_USER_AGENT)
+            .default_headers(http_headers)
             .build()?;
         Ok(Self {
             url,
@@ -145,7 +146,9 @@ mod tests {
     use mockito;
 
     fn enable_logging() {
-        let _ = simple_logger::SimpleLogger::new().with_level(log::LevelFilter::Debug).init();
+        let _ = simple_logger::SimpleLogger::new()
+            .with_level(log::LevelFilter::Debug)
+            .init();
     }
 
     #[test]
