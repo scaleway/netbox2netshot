@@ -1,4 +1,4 @@
-mod netbox;
+mod netbox2netshot;
 
 use anyhow::{Error, Result};
 use log::LevelFilter;
@@ -58,7 +58,7 @@ async fn main() -> Result<(), Error> {
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
+    let netbox_client = netbox2netshot::netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
     let netbox_ping = netbox_client.ping().await?;
 
     let netbox_devices = netbox_client

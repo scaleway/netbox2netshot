@@ -2,8 +2,8 @@ use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use super::common::APP_USER_AGENT;
 
-const APP_USER_AGENT: &str = "netbox2netshot";
 const API_LIMIT: u32 = 100;
 const PATH_PING: &str = "/api/dcim/devices/?name=netbox2netshot-ping";
 const PATH_DCIM_DEVICES: &str = "/api/dcim/devices/";
