@@ -18,17 +18,17 @@ pub struct NetboxClient {
 /// Represent the primary_ip field from the DCIM device API call
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PrimaryIP {
-    id: u32,
-    family: u8,
-    address: String,
+    pub id: u32,
+    pub family: u8,
+    pub address: String,
 }
 
 /// Represent the required information from the DCIM device API call
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Device {
-    id: u32,
-    name: Option<String>,
-    primary_ip: Option<PrimaryIP>,
+    pub id: u32,
+    pub name: Option<String>,
+    pub primary_ip: Option<PrimaryIP>,
 }
 
 /// Represent the API response from /api/devim/devices call

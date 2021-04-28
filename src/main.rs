@@ -1,8 +1,11 @@
-mod netbox2netshot;
+mod common;
+mod netbox;
+mod netshot;
 
 use anyhow::{Error, Result};
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
+use std::collections::HashMap;
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -58,19 +61,47 @@ async fn main() -> Result<(), Error> {
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client =
-        netbox2netshot::netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
+    let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
     let _netbox_ping = netbox_client.ping().await?;
 
-    let netshot_client =
-        netbox2netshot::netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
+    let netshot_client = netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
     let _netshot_ping = netshot_client.ping().await?;
 
     let netshot_devices = netshot_client.get_devices().await?;
 
+    log::debug!("Building netshot device hashmap");
+    let mut netshot_hashmap = HashMap::new();
+    for device in netshot_devices {
+        netshot_hashmap.insert(device.management_address.ip, device.name);
+    }
+
     let netbox_devices = netbox_client
         .get_devices(&opt.netbox_devices_filter)
         .await?;
+
+    log::debug!("Building netbox device hashmap");
+    let mut netbox_hashmap = HashMap::new();
+    for device in netbox_devices {
+        match device.primary_ip {
+            Some(x) => netbox_hashmap.insert(
+                String::from(x.address.split("/").next().unwrap()),
+                device.name.unwrap_or(device.id.to_string()),
+            ),
+            None => {
+                log::warn!(
+                    "Device {} is missing its primary IP address",
+                    device.name.unwrap_or(device.id.to_string())
+                );
+                continue;
+            }
+        };
+    }
+
+    log::debug!(
+        "Hashmaps: Netbox({}), Netshot({})",
+        netbox_hashmap.len(),
+        netshot_hashmap.len()
+    );
 
     Ok(())
 }

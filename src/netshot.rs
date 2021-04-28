@@ -17,19 +17,19 @@ pub struct NetshotClient {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ManagementAddress {
     #[serde(rename = "prefixLength")]
-    prefix_length: u8,
+    pub prefix_length: u8,
     #[serde(rename = "addressUsage")]
-    address_usage: String,
-    ip: String,
+    pub address_usage: String,
+    pub ip: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Device {
-    id: u32,
-    name: String,
+    pub id: u32,
+    pub name: String,
     #[serde(rename = "mgmtAddress")]
-    management_address: ManagementAddress,
-    status: String,
+    pub management_address: ManagementAddress,
+    pub status: String,
 }
 
 impl NetshotClient {
