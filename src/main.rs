@@ -89,7 +89,7 @@ async fn main() -> Result<(), Error> {
             ),
             None => {
                 log::warn!(
-                    "Device {} is missing its primary IP address",
+                    "Device {} is missing its primary IP address, skipping it",
                     device.name.unwrap_or(device.id.to_string())
                 );
                 continue;
@@ -102,6 +102,27 @@ async fn main() -> Result<(), Error> {
         netbox_hashmap.len(),
         netshot_hashmap.len()
     );
+
+
+    log::debug!("Comparing HashMaps");
+    let mut missing_devices: Vec<String> = Vec::new();
+    for device in netbox_hashmap {
+        match netshot_hashmap.get(&device.0) {
+            Some(x) => log::debug!("{}({}) is present on both", x, device.0),
+            None => {
+                log::debug!("{}({}) missing from Netshot", device.1, device.0);
+                missing_devices.push(device.0);
+            },
+        }
+    }
+
+    log::info!("Found {} devices missing on Netshot", missing_devices.len());
+
+    if !opt.check {
+        for device in missing_devices {
+
+        }
+    }
 
     Ok(())
 }
