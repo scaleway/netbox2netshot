@@ -2,9 +2,9 @@
 
 ## Introduction
 
-Netbox2Netshot is a tool that allows you to synchronize your Netbox DCIM (using specific criterias) to Netshot so your devices would automatically get backed up by Netshot once added in Netbox.
+Netbox2Netshot is a tool that allows you to synchronize your [Netbox DCIM](https://github.com/netbox-community/netbox) (using specific criterias) to [Netshot](https://github.com/netfishers-onl/Netshot)  so your devices would automatically get backed up by Netshot once added in Netbox.
 
-The tool is coded in Rust and doesn't required any dependency installed
+The tool is coded in Rust and doesn't required any runtime dependency installed
 
 ## How to use
 
@@ -21,9 +21,6 @@ cargo install netbox2netshot
 Most parameters can be set either via command line arguments or environment variables
 
 ```bash
-netbox2netshot 0.1.0
-Synchronization tool between netbox and netshot
-
 USAGE:
     netbox2netshot [FLAGS] [OPTIONS] --netbox-token <netbox-token> --netbox-url <netbox-url> --netshot-url <netshot-url>
 
@@ -37,9 +34,9 @@ OPTIONS:
         --netbox-devices-filter <netbox-devices-filter>
             The querystring to use to select the devices from netbox [env: NETBOX_DEVICES_FILTER=]  [default: ]
 
-        --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN]
+        --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN] [default: ]
         --netbox-url <netbox-url>                          The Netbox API URL [env: NETBOX_URL=]
-        --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]  [default: ]
+        --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]
         --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
         --netshot-domain-id <netshot-domain-id>
             The domain ID to use when importing a new device [env: NETSHOT_DOMAIN_ID=]
