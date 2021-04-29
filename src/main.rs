@@ -24,7 +24,6 @@ struct Opt {
         long,
         help = "The Netshot token",
         env,
-        default_value = "",
         hide_env_values = true
     )]
     netshot_token: String,
@@ -35,7 +34,7 @@ struct Opt {
     #[structopt(long, help = "The Netbox API URL", env)]
     netbox_url: String,
 
-    #[structopt(long, help = "The Netbox token", env, hide_env_values = true)]
+    #[structopt(long, help = "The Netbox token", env, hide_env_values = true, default_value = "")]
     netbox_token: String,
 
     #[structopt(
