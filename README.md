@@ -1,7 +1,5 @@
 # Netbox2Netshot
 
-> Still in early development
-
 ## Introduction
 
 Netbox2Netshot is a tool that allows you to synchronize your Netbox DCIM (using specific criterias) to Netshot so your devices would automatically get backed up by Netshot once added in Netbox.
@@ -23,7 +21,7 @@ cargo install netbox2netshot
 Most parameters can be set either via command line arguments or environment variables
 
 ```bash
-netbox2netshot 0.0.1
+netbox2netshot 0.1.0
 Synchronization tool between netbox and netshot
 
 USAGE:
@@ -43,7 +41,8 @@ OPTIONS:
         --netbox-url <netbox-url>                          The Netbox API URL [env: NETBOX_URL=]
         --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]  [default: ]
         --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
-
+        --netshot-domain-id <netshot-domain-id>
+            The domain ID to use when importing a new device [env: NETSHOT_DOMAIN_ID=]
 ```
 
 The query-string format need to be like this (url query string without the `?`):

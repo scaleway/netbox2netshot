@@ -52,6 +52,7 @@ fn extract_offset(url_string: &String) -> Result<u32, Error> {
 }
 
 impl Device {
+    /// Is this a valid device for import
     pub fn is_valid(&self) -> bool {
         self.primary_ip.is_some() && self.name.is_some()
     }

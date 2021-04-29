@@ -29,6 +29,9 @@ struct Opt {
     )]
     netshot_token: String,
 
+    #[structopt(long, help = "The domain ID to use when importing a new device", env)]
+    netshot_domain_id: u32,
+
     #[structopt(long, help = "The Netbox API URL", env)]
     netbox_url: String,
 
@@ -103,7 +106,6 @@ async fn main() -> Result<(), Error> {
         netshot_hashmap.len()
     );
 
-
     log::debug!("Comparing HashMaps");
     let mut missing_devices: Vec<String> = Vec::new();
     for device in netbox_hashmap {
@@ -112,7 +114,7 @@ async fn main() -> Result<(), Error> {
             None => {
                 log::debug!("{}({}) missing from Netshot", device.1, device.0);
                 missing_devices.push(device.0);
-            },
+            }
         }
     }
 
@@ -120,7 +122,9 @@ async fn main() -> Result<(), Error> {
 
     if !opt.check {
         for device in missing_devices {
-
+            netshot_client
+                .register_device(&device, opt.netshot_domain_id)
+                .await?;
         }
     }
 

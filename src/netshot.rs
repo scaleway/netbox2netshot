@@ -1,5 +1,5 @@
 use super::common::APP_USER_AGENT;
-use anyhow::{Error, Result};
+use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde;
 use serde::{Deserialize, Serialize};
@@ -43,6 +43,13 @@ struct NewDevicePayload {
     domain_id: u32,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct NewDeviceCreatedPayload {
+    #[serde(rename = "id")]
+    pub task_id: u32,
+    pub status: String,
+}
+
 impl NetshotClient {
     /// Create a client with the given authentication token
     pub fn new(url: String, token: String) -> Result<Self, Error> {
@@ -79,16 +86,38 @@ impl NetshotClient {
     }
 
     /// Register a given IP into Netshot and return the corresponding device
-    pub async fn register_device(&self, ip_address: String, domain_id: u32) -> Result<Device, Error> {
-
+    pub async fn register_device(
+        &self,
+        ip_address: &String,
+        domain_id: u32,
+    ) -> Result<bool, Error> {
         log::info!("Registering new device with IP {}", ip_address);
 
-        let newDevice = NewDevicePayload{ auto_discover: true, ip_address, domain_id };
-        let response = self.client.post(PATH_DEVICES).json(&newDevice).send().await?;
-        let device: Device = response.json().await?;
+        let new_device = NewDevicePayload {
+            auto_discover: true,
+            ip_address: ip_address.clone(),
+            domain_id,
+        };
 
-        // TODO: Finish
+        let url = format!("{}{}", self.url, PATH_DEVICES);
+        let response = self.client.post(url).json(&new_device).send().await?;
 
-        Ok(device)
+        if !response.status().is_success() {
+            log::warn!(
+                "Failed to register new device {}, got status {}",
+                ip_address,
+                response.status().to_string()
+            );
+            return Err(anyhow!("Failed to register new device {}", ip_address));
+        }
+
+        let device_registration: NewDeviceCreatedPayload = response.json().await?;
+        log::debug!(
+            "Device registration for device {} requested with task ID {}",
+            ip_address,
+            device_registration.task_id
+        );
+
+        Ok(true)
     }
 }
