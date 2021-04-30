@@ -20,12 +20,7 @@ struct Opt {
     #[structopt(long, help = "The Netshot API URL", env)]
     netshot_url: String,
 
-    #[structopt(
-        long,
-        help = "The Netshot token",
-        env,
-        hide_env_values = true
-    )]
+    #[structopt(long, help = "The Netshot token", env, hide_env_values = true)]
     netshot_token: String,
 
     #[structopt(long, help = "The domain ID to use when importing a new device", env)]
@@ -34,7 +29,13 @@ struct Opt {
     #[structopt(long, help = "The Netbox API URL", env)]
     netbox_url: String,
 
-    #[structopt(long, help = "The Netbox token", env, hide_env_values = true, default_value = "")]
+    #[structopt(
+        long,
+        help = "The Netbox token",
+        env,
+        hide_env_values = true,
+        default_value = ""
+    )]
     netbox_token: String,
 
     #[structopt(

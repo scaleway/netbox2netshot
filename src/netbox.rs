@@ -191,7 +191,7 @@ mod tests {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_PING)
-            .with_body_from_file("tests/data/ping.json")
+            .with_body_from_file("tests/data/netbox/ping.json")
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone()).unwrap();
@@ -206,7 +206,7 @@ mod tests {
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
             .match_query(mockito::Matcher::Any)
-            .with_body_from_file("tests/data/single_good_device.json")
+            .with_body_from_file("tests/data/netbox/single_good_device.json")
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone()).unwrap();
@@ -229,7 +229,7 @@ mod tests {
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
             .match_query(mockito::Matcher::Any)
-            .with_body_from_file("tests/data/single_device_without_primary_ip.json")
+            .with_body_from_file("tests/data/netbox/single_device_without_primary_ip.json")
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone()).unwrap();
@@ -249,7 +249,7 @@ mod tests {
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
             .match_query(mockito::Matcher::Any)
-            .with_body_from_file("tests/data/single_device_without_name.json")
+            .with_body_from_file("tests/data/netbox/single_device_without_name.json")
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone()).unwrap();

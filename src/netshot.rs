@@ -44,7 +44,7 @@ struct NewDevicePayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct NewDeviceCreatedPayload {
+pub struct NewDeviceCreatedPayload {
     #[serde(rename = "id")]
     pub task_id: u32,
     pub status: String,
@@ -90,7 +90,7 @@ impl NetshotClient {
         &self,
         ip_address: &String,
         domain_id: u32,
-    ) -> Result<bool, Error> {
+    ) -> Result<NewDeviceCreatedPayload, Error> {
         log::info!("Registering new device with IP {}", ip_address);
 
         let new_device = NewDevicePayload {
@@ -118,6 +118,71 @@ impl NetshotClient {
             device_registration.task_id
         );
 
-        Ok(true)
+        Ok(device_registration)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mockito;
+
+    fn enable_logging() {
+        let _ = simple_logger::SimpleLogger::new()
+            .with_level(log::LevelFilter::Debug)
+            .init();
+    }
+
+    #[test]
+    fn authenticated_initialization() {
+        enable_logging();
+        let url = mockito::server_url();
+        let token = String::from("hello");
+        let client = NetshotClient::new(url.clone(), token.clone()).unwrap();
+        assert_eq!(client.token, token);
+        assert_eq!(client.url, url);
+    }
+
+    #[tokio::test]
+    async fn single_good_device() {
+        enable_logging();
+        let url = mockito::server_url();
+
+        let _mock = mockito::mock("GET", PATH_DEVICES)
+            .match_query(mockito::Matcher::Any)
+            .with_body_from_file("tests/data/netshot/single_good_device.json")
+            .create();
+
+        let client = NetshotClient::new(url.clone(), String::new()).unwrap();
+        let devices = client.get_devices().await.unwrap();
+
+        assert_eq!(devices.len(), 1);
+
+        let device = devices.first().unwrap();
+
+        assert_eq!(device.name, "test-device");
+        assert_eq!(device.id, 1 as u32);
+        assert_eq!(device.management_address.ip, "1.2.3.4");
+    }
+
+    #[tokio::test]
+    async fn good_device_registration() {
+        enable_logging();
+        let url = mockito::server_url();
+
+        let _mock = mockito::mock("POST", PATH_DEVICES)
+            .match_query(mockito::Matcher::Any)
+            .match_body(r#"{"autoDiscover":true,"ipAddress":"1.2.3.4","domainId":2}"#)
+            .with_body_from_file("tests/data/netshot/good_device_registration.json")
+            .create();
+
+        let client = NetshotClient::new(url.clone(), String::new()).unwrap();
+        let registration = client
+            .register_device(&String::from("1.2.3.4"), 2)
+            .await
+            .unwrap();
+
+        assert_eq!(registration.task_id, 504);
+        assert_eq!(registration.status, "SCHEDULED");
     }
 }

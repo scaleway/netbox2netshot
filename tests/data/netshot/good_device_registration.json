@@ -1,0 +1,27 @@
+{
+  "type": ".DiscoverDeviceTypeTask",
+  "author": "API Token [1: Python Script]",
+  "changeDate": 1619787406000,
+  "comments": "Autodiscover device 1.2.3.4",
+  "creationDate": 1619787406010,
+  "debugEnabled": false,
+  "executionDate": null,
+  "id": 504,
+  "log": "",
+  "scheduleReference": 1619787406010,
+  "scheduleType": "ASAP",
+  "scheduleFactor": 1,
+  "status": "SCHEDULED",
+  "target": "1.2.3.4",
+  "deviceAddress": {
+    "prefixLength": 0,
+    "addressUsage": "PRIMARY",
+    "ip": "1.2.3.4"
+  },
+  "deviceId": 0,
+  "snapshotTaskId": 0,
+  "discoveredDeviceTypeDescription": "Unknown",
+  "taskDescription": "Device autodiscovery",
+  "nextExecutionDate": null,
+  "repeating": false
+}
