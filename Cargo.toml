@@ -1,6 +1,6 @@
 [package]
 name = "netbox2netshot"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Mathieu Poussin <mpoussin@scaleway.com>"]
 edition = "2018"
 description = "Synchronization tool between netbox and netshot"
@@ -14,7 +14,7 @@ categories = ["command-line-utilities"]
 serde = { version = "1.0.125", features = ["derive"]}
 structopt = "0.3"
 log = "0.4"
-simple_logger = "1.11"
+flexi_logger = "0.17"
 reqwest = { version = "0.11", features = ["json"]}
 tokio = { version = "1", features = ["full"] }
 anyhow = "1.0"

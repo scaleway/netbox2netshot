@@ -3,8 +3,7 @@ mod netbox;
 mod netshot;
 
 use anyhow::{Error, Result};
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
+use flexi_logger::{Duplicate, LogTarget, Logger};
 use std::collections::HashMap;
 use structopt::StructOpt;
 
@@ -54,12 +53,17 @@ struct Opt {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let opt = Opt::from_args();
-    let mut logging_level = LevelFilter::Info;
+    let mut logging_level = "info";
+    let mut duplicate_level = Duplicate::Info;
     if opt.debug {
-        logging_level = LevelFilter::Debug;
+        logging_level = "debug";
+        duplicate_level = Duplicate::Debug;
     }
 
-    SimpleLogger::new().with_level(logging_level).init()?;
+    Logger::with_str(logging_level)
+        .log_target(LogTarget::File)
+        .duplicate_to_stdout(duplicate_level)
+        .start()?;
 
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
@@ -70,19 +74,21 @@ async fn main() -> Result<(), Error> {
     let netshot_client = netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
     let _netshot_ping = netshot_client.ping().await?;
 
+    log::info!("Getting devices list from Netshot");
     let netshot_devices = netshot_client.get_devices().await?;
 
-    log::debug!("Building netshot device hashmap");
+    log::debug!("Building netshot devices hashmap");
     let mut netshot_hashmap = HashMap::new();
     for device in netshot_devices {
         netshot_hashmap.insert(device.management_address.ip, device.name);
     }
 
+    log::info!("Getting devices list from Netbox");
     let netbox_devices = netbox_client
         .get_devices(&opt.netbox_devices_filter)
         .await?;
 
-    log::debug!("Building netbox device hashmap");
+    log::debug!("Building netbox devices hashmap");
     let mut netbox_hashmap = HashMap::new();
     for device in netbox_devices {
         match device.primary_ip {
