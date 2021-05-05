@@ -1,4 +1,4 @@
-use super::common::APP_USER_AGENT;
+use crate::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
@@ -43,10 +43,9 @@ pub struct NetboxDCIMDeviceList {
 /// Extract the offset from the URL returned from the API
 fn extract_offset(url_string: &String) -> Result<u32, Error> {
     let url = reqwest::Url::parse(url_string)?;
-    let args: HashMap<String, String> = url.query_pairs().into_owned().collect();
-    let offset_string = args.get("offset");
+    let offset_string = url.query_pairs().find(|(key, _)| key == "offset");
     match offset_string {
-        Some(x) => Ok(x.parse()?),
+        Some((_, x)) => Ok(x.parse()?),
         None => Err(anyhow!("No offset found in url")),
     }
 }

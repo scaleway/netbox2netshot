@@ -1,11 +1,13 @@
-mod common;
-mod netbox;
-mod netshot;
+use std::collections::HashMap;
 
 use anyhow::{Error, Result};
-use flexi_logger::{Duplicate, LogTarget, Logger};
-use std::collections::HashMap;
+use flexi_logger::{Duplicate, Logger, LogTarget};
 use structopt::StructOpt;
+
+use rest::{netbox, netshot};
+
+mod common;
+mod rest;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -69,19 +71,19 @@ async fn main() -> Result<(), Error> {
     log::debug!("CLI Parameters : {:#?}", opt);
 
     let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
-    let _netbox_ping = netbox_client.ping().await?;
+    netbox_client.ping().await?;
 
     let netshot_client = netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
-    let _netshot_ping = netshot_client.ping().await?;
+    netshot_client.ping().await?;
 
     log::info!("Getting devices list from Netshot");
     let netshot_devices = netshot_client.get_devices().await?;
 
     log::debug!("Building netshot devices hashmap");
-    let mut netshot_hashmap = HashMap::new();
-    for device in netshot_devices {
-        netshot_hashmap.insert(device.management_address.ip, device.name);
-    }
+    let netshot_hashmap: HashMap<_, _> = netshot_devices
+        .into_iter()
+        .map(|dev| (dev.management_address.ip, dev.name))
+        .collect();
 
     log::info!("Getting devices list from Netbox");
     let netbox_devices = netbox_client
@@ -89,22 +91,22 @@ async fn main() -> Result<(), Error> {
         .await?;
 
     log::debug!("Building netbox devices hashmap");
-    let mut netbox_hashmap = HashMap::new();
-    for device in netbox_devices {
-        match device.primary_ip4 {
-            Some(x) => netbox_hashmap.insert(
-                String::from(x.address.split("/").next().unwrap()),
+    let netbox_hashmap: HashMap<_, _> = netbox_devices
+        .into_iter()
+        .filter_map(|device| match device.primary_ip4 {
+            Some(x) => Some((
+                x.address.split("/").next().unwrap().to_owned(),
                 device.name.unwrap_or(device.id.to_string()),
-            ),
+            )),
             None => {
                 log::warn!(
                     "Device {} is missing its primary IP address, skipping it",
                     device.name.unwrap_or(device.id.to_string())
                 );
-                continue;
+                None
             }
-        };
-    }
+        })
+        .collect();
 
     log::debug!(
         "Hashmaps: Netbox({}), Netshot({})",
@@ -114,12 +116,12 @@ async fn main() -> Result<(), Error> {
 
     log::debug!("Comparing HashMaps");
     let mut missing_devices: Vec<String> = Vec::new();
-    for device in netbox_hashmap {
-        match netshot_hashmap.get(&device.0) {
-            Some(x) => log::debug!("{}({}) is present on both", x, device.0),
+    for (ip, hostname) in netbox_hashmap {
+        match netshot_hashmap.get(&ip) {
+            Some(x) => log::debug!("{}({}) is present on both", x, ip),
             None => {
-                log::debug!("{}({}) missing from Netshot", device.1, device.0);
-                missing_devices.push(device.0);
+                log::debug!("{}({}) missing from Netshot", hostname, ip);
+                missing_devices.push(ip);
             }
         }
     }
@@ -131,9 +133,8 @@ async fn main() -> Result<(), Error> {
             let registration = netshot_client
                 .register_device(&device, opt.netshot_domain_id)
                 .await;
-            match registration {
-                Ok(_) => {},
-                Err(error) => log::warn!("Registration failure: {}", error)
+            if let Err(error) = registration {
+                log::warn!("Registration failure: {}", error);
             }
         }
     }
@@ -143,12 +144,13 @@ async fn main() -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use flexi_logger::{Duplicate, LogTarget, Logger};
+    use flexi_logger::{Duplicate, Logger, LogTarget};
 
     #[ctor::ctor]
     fn enable_logging() {
         Logger::with_str("debug")
             .log_target(LogTarget::StdOut)
-            .start().unwrap();
+            .start()
+            .unwrap();
     }
 }

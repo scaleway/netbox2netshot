@@ -1,4 +1,4 @@
-use super::common::APP_USER_AGENT;
+use crate::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde;
