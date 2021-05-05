@@ -28,7 +28,7 @@ pub struct PrimaryIP {
 pub struct Device {
     pub id: u32,
     pub name: Option<String>,
-    pub primary_ip: Option<PrimaryIP>,
+    pub primary_ip4: Option<PrimaryIP>,
 }
 
 /// Represent the API response from /api/devim/devices call
@@ -54,7 +54,7 @@ fn extract_offset(url_string: &String) -> Result<u32, Error> {
 impl Device {
     /// Is this a valid device for import
     pub fn is_valid(&self) -> bool {
-        self.primary_ip.is_some() && self.name.is_some()
+        self.primary_ip4.is_some() && self.name.is_some()
     }
 }
 
@@ -146,15 +146,8 @@ mod tests {
     use super::*;
     use mockito;
 
-    fn enable_logging() {
-        let _ = simple_logger::SimpleLogger::new()
-            .with_level(log::LevelFilter::Debug)
-            .init();
-    }
-
     #[test]
     fn anonymous_initialization() {
-        enable_logging();
         let url = mockito::server_url();
         let client = NetboxClient::new_anonymous(url.clone()).unwrap();
         assert_eq!(client.token, "");
@@ -163,7 +156,6 @@ mod tests {
 
     #[test]
     fn authenticated_initialization() {
-        enable_logging();
         let url = mockito::server_url();
         let token = String::from("hello");
         let client = NetboxClient::new(url.clone(), token.clone()).unwrap();
@@ -173,7 +165,6 @@ mod tests {
 
     #[tokio::test]
     async fn failed_ping() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", mockito::Matcher::Any)
@@ -187,7 +178,6 @@ mod tests {
 
     #[tokio::test]
     async fn successful_ping() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_PING)
@@ -201,7 +191,6 @@ mod tests {
 
     #[tokio::test]
     async fn single_good_device() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
@@ -218,13 +207,12 @@ mod tests {
 
         assert_eq!(device.name.as_ref().unwrap(), "test-device");
         assert_eq!(device.id, 1 as u32);
-        assert_eq!(device.primary_ip.as_ref().unwrap().address, "1.2.3.4/32");
+        assert_eq!(device.primary_ip4.as_ref().unwrap().address, "1.2.3.4/32");
         assert_eq!(device.is_valid(), true);
     }
 
     #[tokio::test]
     async fn single_device_without_primary_ip() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
@@ -244,7 +232,6 @@ mod tests {
 
     #[tokio::test]
     async fn single_device_without_name() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)

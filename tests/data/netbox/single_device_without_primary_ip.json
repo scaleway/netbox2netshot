@@ -7,7 +7,7 @@
             "id": 1,
             "url": "http://netbox.example.org/api/dcim/devices/1/",
             "name": "test-device-without-primary-ip",
-            "primary_ip": null
+            "primary_ip4": null
         }
     ]
 }

@@ -7,7 +7,7 @@
             "id": 1,
             "url": "http://netbox.example.org/api/dcim/devices/1/",
             "name": "test-device",
-            "primary_ip": {
+            "primary_ip4": {
                 "id": 1,
                 "url": "http://netbox.example.org/api/ipam/ip-addresses/1/",
                 "family": 4,

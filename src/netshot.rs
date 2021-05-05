@@ -127,15 +127,8 @@ mod tests {
     use super::*;
     use mockito;
 
-    fn enable_logging() {
-        let _ = simple_logger::SimpleLogger::new()
-            .with_level(log::LevelFilter::Debug)
-            .init();
-    }
-
     #[test]
     fn authenticated_initialization() {
-        enable_logging();
         let url = mockito::server_url();
         let token = String::from("hello");
         let client = NetshotClient::new(url.clone(), token.clone()).unwrap();
@@ -145,7 +138,6 @@ mod tests {
 
     #[tokio::test]
     async fn single_good_device() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DEVICES)
@@ -167,7 +159,6 @@ mod tests {
 
     #[tokio::test]
     async fn good_device_registration() {
-        enable_logging();
         let url = mockito::server_url();
 
         let _mock = mockito::mock("POST", PATH_DEVICES)

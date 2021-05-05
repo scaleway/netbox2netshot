@@ -91,7 +91,7 @@ async fn main() -> Result<(), Error> {
     log::debug!("Building netbox devices hashmap");
     let mut netbox_hashmap = HashMap::new();
     for device in netbox_devices {
-        match device.primary_ip {
+        match device.primary_ip4 {
             Some(x) => netbox_hashmap.insert(
                 String::from(x.address.split("/").next().unwrap()),
                 device.name.unwrap_or(device.id.to_string()),
@@ -128,11 +128,27 @@ async fn main() -> Result<(), Error> {
 
     if !opt.check {
         for device in missing_devices {
-            netshot_client
+            let registration = netshot_client
                 .register_device(&device, opt.netshot_domain_id)
-                .await?;
+                .await;
+            match registration {
+                Ok(_) => {},
+                Err(error) => log::warn!("Registration failure: {}", error)
+            }
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use flexi_logger::{Duplicate, LogTarget, Logger};
+
+    #[ctor::ctor]
+    fn enable_logging() {
+        Logger::with_str("debug")
+            .log_target(LogTarget::StdOut)
+            .start().unwrap();
+    }
 }
