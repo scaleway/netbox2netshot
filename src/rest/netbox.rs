@@ -2,12 +2,13 @@ use crate::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 const API_LIMIT: u32 = 100;
 const PATH_PING: &str = "/api/dcim/devices/?name=netbox2netshot-ping";
 const PATH_DCIM_DEVICES: &str = "/api/dcim/devices/";
+const PATH_VIRT_VM: &str = "/api/virtualization/virtual-machines/";
 
+/// The Netbox client
 #[derive(Debug)]
 pub struct NetboxClient {
     pub url: String,
@@ -94,13 +95,14 @@ impl NetboxClient {
     /// Get a single device page
     pub async fn get_devices_page(
         &self,
+        path: &str,
         query_string: &String,
         limit: u32,
         offset: u32,
     ) -> Result<NetboxDCIMDeviceList, Error> {
         let url = format!(
             "{}{}?limit={}&offset={}&{}",
-            self.url, PATH_DCIM_DEVICES, limit, offset, query_string
+            self.url, path, limit, offset, query_string
         );
         let page: NetboxDCIMDeviceList = self.client.get(url).send().await?.json().await?;
         Ok(page)
@@ -113,7 +115,7 @@ impl NetboxClient {
 
         loop {
             let mut response = self
-                .get_devices_page(&query_string, API_LIMIT, offset)
+                .get_devices_page(PATH_DCIM_DEVICES, &query_string, API_LIMIT, offset)
                 .await?;
 
             devices.append(&mut response.results);
@@ -136,6 +138,39 @@ impl NetboxClient {
         }
 
         log::info!("Fetched {} devices from Netbox", devices.len());
+        Ok(devices)
+    }
+
+    /// Get the VMs as device using the given filter
+    pub async fn get_vms(&self, query_string: &String) -> Result<Vec<Device>, Error> {
+        let mut devices: Vec<Device> = Vec::new();
+        let mut offset = 0;
+
+        loop {
+            let mut response = self
+                .get_devices_page(PATH_VIRT_VM, &query_string, API_LIMIT, offset)
+                .await?;
+
+            devices.append(&mut response.results);
+
+            let pages_count = response.count / API_LIMIT;
+            log::debug!(
+                "Got {} VM devices on the {} matches (page {}/{})",
+                devices.len(),
+                response.count,
+                (offset / API_LIMIT),
+                pages_count
+            );
+
+            match response.next {
+                Some(x) => {
+                    offset = extract_offset(&x)?;
+                }
+                None => break,
+            }
+        }
+
+        log::info!("Fetched {} VM devices from Netbox", devices.len());
         Ok(devices)
     }
 }

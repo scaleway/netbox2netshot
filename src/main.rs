@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Error, Result};
-use flexi_logger::{Duplicate, Logger, LogTarget};
+use flexi_logger::{Duplicate, LogTarget, Logger};
 use structopt::StructOpt;
 
 use rest::{netbox, netshot};
@@ -47,6 +47,13 @@ struct Opt {
     )]
     netbox_devices_filter: String,
 
+    #[structopt(
+        long,
+        help = "The querystring to use to select the VM from netbox",
+        env
+    )]
+    netbox_vms_filter: Option<String>,
+
     #[structopt(short, long, help = "Check mode, will not push any change to Netshot")]
     check: bool,
 }
@@ -86,12 +93,21 @@ async fn main() -> Result<(), Error> {
         .collect();
 
     log::info!("Getting devices list from Netbox");
-    let netbox_devices = netbox_client
+    let mut netbox_devices = netbox_client
         .get_devices(&opt.netbox_devices_filter)
         .await?;
 
+    if opt.netbox_vms_filter.is_some() {
+        log::info!("Getting VMS list rom Netbox");
+        let mut vms = netbox_client
+            .get_vms(&opt.netbox_vms_filter.unwrap())
+            .await?;
+        log::debug!("Merging VMs and Devices lists");
+        netbox_devices.append(&mut vms);
+    }
+
     log::debug!("Building netbox devices hashmap");
-    let netbox_hashmap: HashMap<_, _> = netbox_devices
+    let mut netbox_hashmap: HashMap<_, _> = netbox_devices
         .into_iter()
         .filter_map(|device| match device.primary_ip4 {
             Some(x) => Some((
@@ -144,7 +160,7 @@ async fn main() -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use flexi_logger::{Duplicate, Logger, LogTarget};
+    use flexi_logger::{Duplicate, LogTarget, Logger};
 
     #[ctor::ctor]
     fn enable_logging() {

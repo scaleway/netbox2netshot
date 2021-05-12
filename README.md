@@ -21,8 +21,7 @@ cargo install netbox2netshot
 Most parameters can be set either via command line arguments or environment variables
 
 ```bash
-USAGE:
-    netbox2netshot [FLAGS] [OPTIONS] --netbox-token <netbox-token> --netbox-url <netbox-url> --netshot-url <netshot-url>
+netbox2netshot [FLAGS] [OPTIONS] --netbox-url <netbox-url> --netshot-domain-id <netshot-domain-id> --netshot-token <netshot-token> --netshot-url <netshot-url>
 
 FLAGS:
     -c, --check      Check mode, will not push any change to Netshot
@@ -34,12 +33,16 @@ OPTIONS:
         --netbox-devices-filter <netbox-devices-filter>
             The querystring to use to select the devices from netbox [env: NETBOX_DEVICES_FILTER=]  [default: ]
 
-        --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN] [default: ]
+        --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN]  [default: ]
         --netbox-url <netbox-url>                          The Netbox API URL [env: NETBOX_URL=]
-        --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]
-        --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
+        --netbox-vms-filter <netbox-vms-filter>
+            The querystring to use to select the VM from netbox [env: NETBOX_VMS_FILTER=]
+
         --netshot-domain-id <netshot-domain-id>
             The domain ID to use when importing a new device [env: NETSHOT_DOMAIN_ID=]
+
+        --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]
+        --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
 ```
 
 The query-string format need to be like this (url query string without the `?`):
