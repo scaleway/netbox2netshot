@@ -33,6 +33,9 @@ OPTIONS:
         --netbox-devices-filter <netbox-devices-filter>
             The querystring to use to select the devices from netbox [env: NETBOX_DEVICES_FILTER=]  [default: ]
 
+        --netbox-proxy <netbox-proxy>
+            HTTP(s) proxy to use to connect to Netbox [env: NETBOX_PROXY=]
+
         --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN]  [default: ]
         --netbox-url <netbox-url>                          The Netbox API URL [env: NETBOX_URL=]
         --netbox-vms-filter <netbox-vms-filter>
@@ -40,6 +43,9 @@ OPTIONS:
 
         --netshot-domain-id <netshot-domain-id>
             The domain ID to use when importing a new device [env: NETSHOT_DOMAIN_ID=]
+
+        --netshot-proxy <netshot-proxy>
+            HTTP(s) proxy to use to connect to Netshot [env: NETSHOT_PROXY=]
 
         --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]
         --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
