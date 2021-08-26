@@ -1,7 +1,9 @@
 use crate::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Proxy;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 const API_LIMIT: u32 = 100;
 const PATH_PING: &str = "/api/dcim/devices/?name=netbox2netshot-ping";
@@ -60,26 +62,32 @@ impl Device {
 
 impl NetboxClient {
     /// Create a client without authentication
-    pub fn new_anonymous(url: String) -> Result<Self, Error> {
-        NetboxClient::new(url, String::from(""))
+    pub fn new_anonymous(url: String, proxy: Option<String>) -> Result<Self, Error> {
+        NetboxClient::new(url, String::from(""), proxy)
     }
 
     /// Create a client with the given authentication token
-    pub fn new(url: String, token: String) -> Result<Self, Error> {
+    pub fn new(url: String, token: String, proxy: Option<String>) -> Result<Self, Error> {
         log::debug!("Creating new Netbox client to {}", url);
         let mut http_headers = HeaderMap::new();
         if token != "" {
             let header_value = HeaderValue::from_str(format!("Token {}", token).as_str())?;
             http_headers.insert("Authorization", header_value);
         }
-        let http_client = reqwest::Client::builder()
+        let mut http_client = reqwest::Client::builder()
             .user_agent(APP_USER_AGENT)
-            .default_headers(http_headers)
-            .build()?;
+            .timeout(Duration::from_secs(5))
+            .default_headers(http_headers);
+
+        http_client = match proxy {
+            Some(p) => http_client.proxy(Proxy::all(p)?),
+            None => http_client,
+        };
+
         Ok(Self {
             url,
             token,
-            client: http_client,
+            client: http_client.build()?,
         })
     }
 
@@ -183,7 +191,7 @@ mod tests {
     #[test]
     fn anonymous_initialization() {
         let url = mockito::server_url();
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         assert_eq!(client.token, "");
         assert_eq!(client.url, url);
     }
@@ -192,7 +200,7 @@ mod tests {
     fn authenticated_initialization() {
         let url = mockito::server_url();
         let token = String::from("hello");
-        let client = NetboxClient::new(url.clone(), token.clone()).unwrap();
+        let client = NetboxClient::new(url.clone(), token.clone(), None).unwrap();
         assert_eq!(client.token, token);
         assert_eq!(client.url, url);
     }
@@ -205,7 +213,7 @@ mod tests {
             .with_status(403)
             .create();
 
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         let ping = client.ping().await.unwrap();
         assert_eq!(ping, false);
     }
@@ -218,7 +226,7 @@ mod tests {
             .with_body_from_file("tests/data/netbox/ping.json")
             .create();
 
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         let ping = client.ping().await.unwrap();
         assert_eq!(ping, true);
     }
@@ -232,7 +240,7 @@ mod tests {
             .with_body_from_file("tests/data/netbox/single_good_device.json")
             .create();
 
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         let devices = client.get_devices(&String::from("")).await.unwrap();
 
         assert_eq!(devices.len(), 1);
@@ -254,7 +262,7 @@ mod tests {
             .with_body_from_file("tests/data/netbox/single_device_without_primary_ip.json")
             .create();
 
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         let devices = client.get_devices(&String::from("")).await.unwrap();
 
         assert_eq!(devices.len(), 1);
@@ -273,7 +281,7 @@ mod tests {
             .with_body_from_file("tests/data/netbox/single_device_without_name.json")
             .create();
 
-        let client = NetboxClient::new_anonymous(url.clone()).unwrap();
+        let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
         let devices = client.get_devices(&String::from("")).await.unwrap();
 
         assert_eq!(devices.len(), 1);
