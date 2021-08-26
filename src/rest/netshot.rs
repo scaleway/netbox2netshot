@@ -1,8 +1,10 @@
 use crate::common::APP_USER_AGENT;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
+use reqwest::Proxy;
 use serde;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 const PATH_DEVICES: &str = "/api/devices";
 
@@ -52,20 +54,26 @@ pub struct NewDeviceCreatedPayload {
 
 impl NetshotClient {
     /// Create a client with the given authentication token
-    pub fn new(url: String, token: String) -> Result<Self, Error> {
+    pub fn new(url: String, token: String, proxy: Option<String>) -> Result<Self, Error> {
         log::debug!("Creating new Netshot client to {}", url);
         let mut http_headers = HeaderMap::new();
         let header_value = HeaderValue::from_str(token.as_str())?;
         http_headers.insert("X-Netshot-API-Token", header_value);
         http_headers.insert("Accept", HeaderValue::from_str("application/json")?);
-        let http_client = reqwest::Client::builder()
+        let mut http_client = reqwest::Client::builder()
             .user_agent(APP_USER_AGENT)
-            .default_headers(http_headers)
-            .build()?;
+            .timeout(Duration::from_secs(5))
+            .default_headers(http_headers);
+
+        http_client = match proxy {
+            Some(p) => http_client.proxy(Proxy::all(p)?),
+            None => http_client,
+        };
+
         Ok(Self {
             url,
             token,
-            client: http_client,
+            client: http_client.build()?,
         })
     }
 
@@ -131,7 +139,7 @@ mod tests {
     fn authenticated_initialization() {
         let url = mockito::server_url();
         let token = String::from("hello");
-        let client = NetshotClient::new(url.clone(), token.clone()).unwrap();
+        let client = NetshotClient::new(url.clone(), token.clone(), None).unwrap();
         assert_eq!(client.token, token);
         assert_eq!(client.url, url);
     }
@@ -145,7 +153,7 @@ mod tests {
             .with_body_from_file("tests/data/netshot/single_good_device.json")
             .create();
 
-        let client = NetshotClient::new(url.clone(), String::new()).unwrap();
+        let client = NetshotClient::new(url.clone(), String::new(), None).unwrap();
         let devices = client.get_devices().await.unwrap();
 
         assert_eq!(devices.len(), 1);
@@ -167,7 +175,7 @@ mod tests {
             .with_body_from_file("tests/data/netshot/good_device_registration.json")
             .create();
 
-        let client = NetshotClient::new(url.clone(), String::new()).unwrap();
+        let client = NetshotClient::new(url.clone(), String::new(), None).unwrap();
         let registration = client
             .register_device(&String::from("1.2.3.4"), 2)
             .await

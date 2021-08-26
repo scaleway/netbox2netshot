@@ -27,6 +27,9 @@ struct Opt {
     #[structopt(long, help = "The domain ID to use when importing a new device", env)]
     netshot_domain_id: u32,
 
+    #[structopt(long, help = "HTTP(s) proxy to use to connect to Netshot", env)]
+    netshot_proxy: Option<String>,
+
     #[structopt(long, help = "The Netbox API URL", env)]
     netbox_url: String,
 
@@ -54,6 +57,9 @@ struct Opt {
     )]
     netbox_vms_filter: Option<String>,
 
+    #[structopt(long, help = "HTTP(s) proxy to use to connect to Netbox", env)]
+    netbox_proxy: Option<String>,
+
     #[structopt(short, long, help = "Check mode, will not push any change to Netshot")]
     check: bool,
 }
@@ -77,10 +83,12 @@ async fn main() -> Result<(), Error> {
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client = netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token)?;
+    let netbox_client =
+        netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token, opt.netbox_proxy)?;
     netbox_client.ping().await?;
 
-    let netshot_client = netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token)?;
+    let netshot_client =
+        netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token, opt.netshot_proxy)?;
     netshot_client.ping().await?;
 
     log::info!("Getting devices list from Netshot");
