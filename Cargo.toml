@@ -1,6 +1,6 @@
 [package]
 name = "netbox2netshot"
-version = "0.1.4"
+version = "0.1.5"
 authors = ["Mathieu Poussin <mpoussin@scaleway.com>"]
 edition = "2018"
 description = "Synchronization tool between netbox and netshot"
@@ -15,9 +15,8 @@ serde = { version = "1.0.125", features = ["derive"]}
 structopt = "0.3"
 log = "0.4"
 flexi_logger = "0.17"
-reqwest = { version = "0.11", features = ["json"]}
-tokio = { version = "1", features = ["full"] }
-anyhow = "1.0"
+reqwest = { version = "0.11", features = ["json", "native-tls", "blocking"]}
+anyhow = { version = "1.0", features = ["backtrace"]}
 
 [dev-dependencies]
 mockito = "0.30"

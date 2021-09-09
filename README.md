@@ -36,8 +36,18 @@ OPTIONS:
         --netbox-proxy <netbox-proxy>
             HTTP(s) proxy to use to connect to Netbox [env: NETBOX_PROXY=]
 
-        --netbox-token <netbox-token>                      The Netbox token [env: NETBOX_TOKEN]  [default: ]
-        --netbox-url <netbox-url>                          The Netbox API URL [env: NETBOX_URL=]
+        --netbox-tls-client-certificate <netbox-tls-client-certificate>
+            The TLS certificate to use to authenticate to Netbox (PKCS12 format) [env: NETBOX_TLS_CLIENT_CERTIFICATE=]
+
+        --netbox-tls-client-certificate-password <netbox-tls-client-certificate-password>
+            The optional password for the netbox PKCS12 file [env: NETBOX_TLS_CLIENT_CERTIFICATE_PASSWORD=]
+
+        --netbox-token <netbox-token>
+            The Netbox token [env: NETBOX_TOKEN]
+
+        --netbox-url <netbox-url>
+            The Netbox API URL [env: NETBOX_URL=]
+
         --netbox-vms-filter <netbox-vms-filter>
             The querystring to use to select the VM from netbox [env: NETBOX_VMS_FILTER=]
 
@@ -47,9 +57,17 @@ OPTIONS:
         --netshot-proxy <netshot-proxy>
             HTTP(s) proxy to use to connect to Netshot [env: NETSHOT_PROXY=]
 
-        --netshot-token <netshot-token>                    The Netshot token [env: NETSHOT_TOKEN]
-        --netshot-url <netshot-url>                        The Netshot API URL [env: NETSHOT_URL=]
-```
+        --netshot-tls-client-certificate <netshot-tls-client-certificate>
+            The TLS certificate to use to authenticate to Netshot (PKCS12 format) [env: NETSHOT_TLS_CLIENT_CERTIFICATE=]
+
+        --netshot-tls-client-certificate-password <netshot-tls-client-certificate-password>
+            The optional password for the netshot PKCS12 file [env: NETSHOT_TLS_CLIENT_CERTIFICATE_PASSWORD=]
+
+        --netshot-token <netshot-token>
+            The Netshot token [env: NETSHOT_TOKEN]
+
+        --netshot-url <netshot-url>
+            The Netshot API URL [env: NETSHOT_URL=]```
 
 The query-string format need to be like this (url query string without the `?`):
 
@@ -57,3 +75,7 @@ The query-string format need to be like this (url query string without the `?`):
 status=active&platform=cisco-ios&platform=cisco-ios-xe&platform=cisco-ios-xr&platform=cisco-nx-os&platform=juniper-junos&has_primary_ip=true&tenant_group=network
 ```
 
+If you plan to use TLS authentication, please provide a PKCS12 formatted identity file (.pfx or .p12), they can be created from .pem/.key/.crt using the following command:
+```bash
+openssl pkcs12 -export -out my.pfx -inkey my.key -in my.crt
+```

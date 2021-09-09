@@ -21,6 +21,16 @@ struct Opt {
     #[structopt(long, help = "The Netshot API URL", env)]
     netshot_url: String,
 
+    #[structopt(
+        long,
+        help = "The TLS certificate to use to authenticate to Netshot (PKCS12 format)",
+        env
+    )]
+    netshot_tls_client_certificate: Option<String>,
+
+    #[structopt(long, help = "The optional password for the netshot PKCS12 file", env)]
+    netshot_tls_client_certificate_password: Option<String>,
+
     #[structopt(long, help = "The Netshot token", env, hide_env_values = true)]
     netshot_token: String,
 
@@ -35,12 +45,16 @@ struct Opt {
 
     #[structopt(
         long,
-        help = "The Netbox token",
-        env,
-        hide_env_values = true,
-        default_value = ""
+        help = "The TLS certificate to use to authenticate to Netbox (PKCS12 format)",
+        env
     )]
-    netbox_token: String,
+    netbox_tls_client_certificate: Option<String>,
+
+    #[structopt(long, help = "The optional password for the netbox PKCS12 file", env)]
+    netbox_tls_client_certificate_password: Option<String>,
+
+    #[structopt(long, help = "The Netbox token", env, hide_env_values = true)]
+    netbox_token: Option<String>,
 
     #[structopt(
         long,
@@ -65,8 +79,7 @@ struct Opt {
 }
 
 /// Main application entrypoint
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+fn main() -> Result<(), Error> {
     let opt = Opt::from_args();
     let mut logging_level = "info";
     let mut duplicate_level = Duplicate::Info;
@@ -78,21 +91,32 @@ async fn main() -> Result<(), Error> {
     Logger::with_str(logging_level)
         .log_target(LogTarget::File)
         .duplicate_to_stdout(duplicate_level)
-        .start()?;
+        .start()
+        .unwrap();
 
     log::info!("Logger initialized with level {}", logging_level);
     log::debug!("CLI Parameters : {:#?}", opt);
 
-    let netbox_client =
-        netbox::NetboxClient::new(opt.netbox_url, opt.netbox_token, opt.netbox_proxy)?;
-    netbox_client.ping().await?;
+    let netbox_client = netbox::NetboxClient::new(
+        opt.netbox_url,
+        opt.netbox_token,
+        opt.netbox_proxy,
+        opt.netbox_tls_client_certificate,
+        opt.netbox_tls_client_certificate_password,
+    )?;
+    netbox_client.ping()?;
 
-    let netshot_client =
-        netshot::NetshotClient::new(opt.netshot_url, opt.netshot_token, opt.netshot_proxy)?;
-    netshot_client.ping().await?;
+    let netshot_client = netshot::NetshotClient::new(
+        opt.netshot_url,
+        opt.netshot_token,
+        opt.netshot_proxy,
+        opt.netshot_tls_client_certificate,
+        opt.netshot_tls_client_certificate_password,
+    )?;
+    netshot_client.ping()?;
 
     log::info!("Getting devices list from Netshot");
-    let netshot_devices = netshot_client.get_devices().await?;
+    let netshot_devices = netshot_client.get_devices()?;
 
     log::debug!("Building netshot devices hashmap");
     let netshot_hashmap: HashMap<_, _> = netshot_devices
@@ -101,15 +125,11 @@ async fn main() -> Result<(), Error> {
         .collect();
 
     log::info!("Getting devices list from Netbox");
-    let mut netbox_devices = netbox_client
-        .get_devices(&opt.netbox_devices_filter)
-        .await?;
+    let mut netbox_devices = netbox_client.get_devices(&opt.netbox_devices_filter)?;
 
     if opt.netbox_vms_filter.is_some() {
         log::info!("Getting VMS list rom Netbox");
-        let mut vms = netbox_client
-            .get_vms(&opt.netbox_vms_filter.unwrap())
-            .await?;
+        let mut vms = netbox_client.get_vms(&opt.netbox_vms_filter.unwrap())?;
         log::debug!("Merging VMs and Devices lists");
         netbox_devices.append(&mut vms);
     }
@@ -154,21 +174,18 @@ async fn main() -> Result<(), Error> {
 
     if !opt.check {
         for device in missing_devices {
-            let registration = netshot_client
-                .register_device(&device, opt.netshot_domain_id)
-                .await;
+            let registration = netshot_client.register_device(&device, opt.netshot_domain_id);
             if let Err(error) = registration {
                 log::warn!("Registration failure: {}", error);
             }
         }
     }
-
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use flexi_logger::{Duplicate, LogTarget, Logger};
+    use flexi_logger::{LogTarget, Logger};
 
     #[ctor::ctor]
     fn enable_logging() {
