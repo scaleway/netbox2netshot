@@ -1,4 +1,5 @@
 use crate::common::APP_USER_AGENT;
+use crate::rest::helpers::build_identity_from_file;
 use anyhow::{anyhow, Error, Result};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::Proxy;
@@ -15,7 +16,7 @@ const PATH_VIRT_VM: &str = "/api/virtualization/virtual-machines/";
 pub struct NetboxClient {
     pub url: String,
     pub token: String,
-    pub client: reqwest::Client,
+    pub client: reqwest::blocking::Client,
 }
 
 /// Represent the primary_ip field from the DCIM device API call
@@ -63,45 +64,63 @@ impl Device {
 impl NetboxClient {
     /// Create a client without authentication
     pub fn new_anonymous(url: String, proxy: Option<String>) -> Result<Self, Error> {
-        NetboxClient::new(url, String::from(""), proxy)
+        NetboxClient::new(url, None, proxy, None, None)
     }
 
     /// Create a client with the given authentication token
-    pub fn new(url: String, token: String, proxy: Option<String>) -> Result<Self, Error> {
+    pub fn new(
+        url: String,
+        token: Option<String>,
+        proxy: Option<String>,
+        tls_client_certificate: Option<String>,
+        tls_client_certificate_password: Option<String>,
+    ) -> Result<Self, Error> {
         log::debug!("Creating new Netbox client to {}", url);
-        let mut http_headers = HeaderMap::new();
-        if token != "" {
-            let header_value = HeaderValue::from_str(format!("Token {}", token).as_str())?;
-            http_headers.insert("Authorization", header_value);
-        }
-        let mut http_client = reqwest::Client::builder()
+        let mut http_client = reqwest::blocking::Client::builder()
             .user_agent(APP_USER_AGENT)
-            .timeout(Duration::from_secs(5))
-            .default_headers(http_headers);
+            .timeout(Duration::from_secs(5));
+
+        http_client = match token {
+            Some(ref t) => {
+                let mut http_headers = HeaderMap::new();
+                let header_value = HeaderValue::from_str(format!("Token {}", t).as_str())?;
+                http_headers.insert("Authorization", header_value);
+                http_client.default_headers(http_headers)
+            }
+            None => http_client,
+        };
 
         http_client = match proxy {
             Some(p) => http_client.proxy(Proxy::all(p)?),
             None => http_client,
         };
 
+        http_client = match tls_client_certificate {
+            Some(c) => http_client.identity(build_identity_from_file(
+                c,
+                tls_client_certificate_password,
+            )?),
+            None => http_client,
+        };
+
         Ok(Self {
             url,
-            token,
+            token: token.unwrap_or("".to_string()),
             client: http_client.build()?,
         })
     }
 
     /// Ping the service to make sure it is reachable and pass the authentication (if there is any)
-    pub async fn ping(&self) -> Result<bool, Error> {
+    pub fn ping(&self) -> Result<bool, Error> {
         let url = format!("{}{}", self.url, PATH_PING);
         log::debug!("Pinging {}", url);
-        let response = self.client.get(url).send().await?;
+        let response = self.client.get(url).send()?;
         log::debug!("Ping response: {}", response.status());
         Ok(response.status().is_success())
     }
 
     /// Get a single device page
-    pub async fn get_devices_page(
+    pub fn get_devices_page(
         &self,
         path: &str,
         query_string: &String,
@@ -112,19 +131,18 @@ impl NetboxClient {
             "{}{}?limit={}&offset={}&{}",
             self.url, path, limit, offset, query_string
         );
-        let page: NetboxDCIMDeviceList = self.client.get(url).send().await?.json().await?;
+        let page: NetboxDCIMDeviceList = self.client.get(url).send()?.json()?;
         Ok(page)
     }
 
     /// Get the devices using the given filter
-    pub async fn get_devices(&self, query_string: &String) -> Result<Vec<Device>, Error> {
+    pub fn get_devices(&self, query_string: &String) -> Result<Vec<Device>, Error> {
         let mut devices: Vec<Device> = Vec::new();
         let mut offset = 0;
 
         loop {
-            let mut response = self
-                .get_devices_page(PATH_DCIM_DEVICES, &query_string, API_LIMIT, offset)
-                .await?;
+            let mut response =
+                self.get_devices_page(PATH_DCIM_DEVICES, &query_string, API_LIMIT, offset)?;
 
             devices.append(&mut response.results);
 
@@ -150,14 +168,13 @@ impl NetboxClient {
     }
 
     /// Get the VMs as device using the given filter
-    pub async fn get_vms(&self, query_string: &String) -> Result<Vec<Device>, Error> {
+    pub fn get_vms(&self, query_string: &String) -> Result<Vec<Device>, Error> {
         let mut devices: Vec<Device> = Vec::new();
         let mut offset = 0;
 
         loop {
-            let mut response = self
-                .get_devices_page(PATH_VIRT_VM, &query_string, API_LIMIT, offset)
-                .await?;
+            let mut response =
+                self.get_devices_page(PATH_VIRT_VM, &query_string, API_LIMIT, offset)?;
 
             devices.append(&mut response.results);
 
@@ -200,13 +217,13 @@ mod tests {
     fn authenticated_initialization() {
         let url = mockito::server_url();
         let token = String::from("hello");
-        let client = NetboxClient::new(url.clone(), token.clone(), None).unwrap();
+        let client = NetboxClient::new(url.clone(), Some(token.clone()), None, None, None).unwrap();
         assert_eq!(client.token, token);
         assert_eq!(client.url, url);
     }
 
-    #[tokio::test]
-    async fn failed_ping() {
+    #[test]
+    fn failed_ping() {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", mockito::Matcher::Any)
@@ -214,12 +231,12 @@ mod tests {
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
-        let ping = client.ping().await.unwrap();
+        let ping = client.ping().unwrap();
         assert_eq!(ping, false);
     }
 
-    #[tokio::test]
-    async fn successful_ping() {
+    #[test]
+    fn successful_ping() {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_PING)
@@ -227,12 +244,12 @@ mod tests {
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
-        let ping = client.ping().await.unwrap();
+        let ping = client.ping().unwrap();
         assert_eq!(ping, true);
     }
 
-    #[tokio::test]
-    async fn single_good_device() {
+    #[test]
+    fn single_good_device() {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
@@ -241,7 +258,7 @@ mod tests {
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
-        let devices = client.get_devices(&String::from("")).await.unwrap();
+        let devices = client.get_devices(&String::from("")).unwrap();
 
         assert_eq!(devices.len(), 1);
 
@@ -253,8 +270,8 @@ mod tests {
         assert_eq!(device.is_valid(), true);
     }
 
-    #[tokio::test]
-    async fn single_device_without_primary_ip() {
+    #[test]
+    fn single_device_without_primary_ip() {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
@@ -263,7 +280,7 @@ mod tests {
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
-        let devices = client.get_devices(&String::from("")).await.unwrap();
+        let devices = client.get_devices(&String::from("")).unwrap();
 
         assert_eq!(devices.len(), 1);
 
@@ -272,8 +289,8 @@ mod tests {
         assert_eq!(device.is_valid(), false);
     }
 
-    #[tokio::test]
-    async fn single_device_without_name() {
+    #[test]
+    fn single_device_without_name() {
         let url = mockito::server_url();
 
         let _mock = mockito::mock("GET", PATH_DCIM_DEVICES)
@@ -282,7 +299,7 @@ mod tests {
             .create();
 
         let client = NetboxClient::new_anonymous(url.clone(), None).unwrap();
-        let devices = client.get_devices(&String::from("")).await.unwrap();
+        let devices = client.get_devices(&String::from("")).unwrap();
 
         assert_eq!(devices.len(), 1);
 
