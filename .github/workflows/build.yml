@@ -21,6 +21,7 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Install cargo plugins
       run: cargo install cargo-rpm cargo-deb
+      continue-on-error: true
     - name: Build
       run: cargo build
     - name: Build deb package
