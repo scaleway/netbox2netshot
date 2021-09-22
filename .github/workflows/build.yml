@@ -29,13 +29,13 @@ jobs:
       run: cargo rpm build
     - uses: actions/upload-artifact@v2
       with:
-        name: netbox2netshot
+        name: netbox2netshot-${{ github.sha }}
         path: target/debug/netbox2netshot
     - uses: actions/upload-artifact@v2
       with:
-        name: netbox2netshot.rpm
+        name: netbox2netshot-${{ github.sha }}.rpm
         path: target/release/rpmbuild/RPMS/x86_64/*.rpm
     - uses: actions/upload-artifact@v2
       with:
-        name: netbox2netshot.deb
+        name: netbox2netshot-${{ github.sha }}.deb
         path: target/debian/*.deb
