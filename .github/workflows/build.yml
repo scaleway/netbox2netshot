@@ -19,7 +19,19 @@ jobs:
         key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
     - name: Build
       run: cargo build
+    - name: Build deb package
+      run: cargo deb
+    - name: Build rpm package
+      run: cargo rpm build
     - uses: actions/upload-artifact@v2
       with:
         name: netbox2netshot
         path: target/debug/netbox2netshot
+    - uses: actions/upload-artifact@v2
+      with:
+        name: netbox2netshot.rpm
+        path: target/release/rpmbuild/RPMS/x86_64/*.rpm
+    - uses: actions/upload-artifact@v2
+      with:
+        name: netbox2netshot.deb
+        path: target/debian/*.deb
