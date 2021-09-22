@@ -7,19 +7,36 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
         path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install cargo plugins
+      run: cargo install cargo-rpm cargo-deb
+      continue-on-error: true
     - name: Build
       run: cargo build
+    - name: Build deb package
+      run: cargo deb
+    - name: Build rpm package
+      run: cargo rpm build
     - uses: actions/upload-artifact@v2
       with:
-        name: netbox2netshot
+        name: netbox2netshot-${{ github.sha }}
         path: target/debug/netbox2netshot
+    - uses: actions/upload-artifact@v2
+      with:
+        name: netbox2netshot-${{ github.sha }}.rpm
+        path: target/release/rpmbuild/RPMS/x86_64/*.rpm
+    - uses: actions/upload-artifact@v2
+      with:
+        name: netbox2netshot-${{ github.sha }}.deb
+        path: target/debian/*.deb

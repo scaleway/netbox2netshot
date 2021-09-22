@@ -1,6 +1,6 @@
 [package]
 name = "netbox2netshot"
-version = "0.1.5"
+version = "0.1.6"
 authors = ["Mathieu Poussin <mpoussin@scaleway.com>"]
 edition = "2018"
 description = "Synchronization tool between netbox and netshot"
@@ -21,3 +21,12 @@ anyhow = { version = "1.0", features = ["backtrace"]}
 [dev-dependencies]
 mockito = "0.30"
 ctor = "0.1.20"
+
+[package.metadata.rpm]
+package = "netbox2netshot"
+
+[package.metadata.rpm.cargo]
+buildflags = ["--release"]
+
+[package.metadata.rpm.targets]
+netbox2netshot = { path = "/usr/bin/netbox2netshot" }
