@@ -18,9 +18,13 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
-    - name: Build
+    - name: Build binary
       run: cargo build --release
-    - name: Create Release`
+    - name: Build deb package
+      run: cargo deb
+    - name: Build rpm package
+      run: cargo rpm build
+    - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
@@ -38,5 +42,25 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: target/release/netbox2netshot
-        asset_name: netbox2netshot
+        asset_name: netbox2netshot-${{ github.ref }}
+        asset_content_type: application/octet-stream
+    - name: Upload rpm package
+      id: upload-release-binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: target/release/rpmbuild/RPMS/x86_64/*.rpm
+        asset_name: netbox2netshot-${{ github.ref }}.rpm
+        asset_content_type: application/octet-stream
+    - name: Upload deb package
+      id: upload-release-binary
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: target/debian/*.deb
+        asset_name: netbox2netshot-${{ github.ref }}.deb
         asset_content_type: application/octet-stream
