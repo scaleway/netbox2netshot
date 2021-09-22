@@ -2,4 +2,3 @@
 /target
 tarpaulin-report.*
 *.log
-.rpm/
