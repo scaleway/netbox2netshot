@@ -50,7 +50,7 @@ jobs:
         asset_name: netbox2netshot-${{ github.ref }}
         asset_content_type: application/octet-stream
     - name: Upload rpm package
-      id: upload-release-binary
+      id: upload-rpm
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -60,7 +60,7 @@ jobs:
         asset_name: netbox2netshot-${{ github.ref }}.rpm
         asset_content_type: application/octet-stream
     - name: Upload deb package
-      id: upload-release-binary
+      id: upload-deb
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
