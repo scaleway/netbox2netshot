@@ -10,7 +10,7 @@ The tool is coded in Rust and doesn't required any runtime dependency installed
 
 ### Installation
 
-Gather a pre-built binary or install it using Cargo
+Gather a pre-built binary, deb or rpm package or install it using Cargo
 
 ```bash
 cargo install netbox2netshot
