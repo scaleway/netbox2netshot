@@ -20,6 +20,9 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Get the version
+      id: version
+      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
     - name: Install cargo plugins
       run: cargo install cargo-rpm cargo-deb
       continue-on-error: true
@@ -47,7 +50,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: target/release/netbox2netshot
-        asset_name: netbox2netshot-${{ github.ref }}
+        asset_name: netbox2netshot-${{ steps.version.outputs.version }}
         asset_content_type: application/octet-stream
     - name: Upload rpm package
       id: upload-rpm
@@ -56,8 +59,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/rpmbuild/RPMS/x86_64/*.rpm
-        asset_name: netbox2netshot-${{ github.ref }}.rpm
+        asset_path: target/release/rpmbuild/RPMS/x86_64/netbox2netshot-${{ steps.version.outputs.version }}-1.x86_64.rpm
+        asset_name: netbox2netshot-${{ steps.version.outputs.version }}-1.x86_64.rpm
         asset_content_type: application/octet-stream
     - name: Upload deb package
       id: upload-deb
@@ -66,6 +69,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/debian/*.deb
-        asset_name: netbox2netshot-${{ github.ref }}.deb
+        asset_path: target/debian/netbox2netshot_${{ steps.version.outputs.version }}_amd64.deb
+        asset_name: netbox2netshot_${{ steps.version.outputs.version }}_amd64.deb
         asset_content_type: application/octet-stream
