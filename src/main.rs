@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Error, Result};
-use flexi_logger::{Duplicate, LogTarget, Logger};
+use flexi_logger::{Duplicate, Logger, FileSpec};
 use structopt::StructOpt;
 
 use rest::{netbox, netshot};
@@ -9,7 +9,7 @@ use rest::{netbox, netshot};
 mod common;
 mod rest;
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, StructOpt, Clone)]
 #[structopt(
     name = "netbox2netshot",
     about = "Synchronization tool between netbox and netshot"
@@ -17,6 +17,9 @@ mod rest;
 struct Opt {
     #[structopt(short, long, help = "Enable debug/verbose mode")]
     debug: bool,
+
+    #[structopt(long, help = "The directory to log to", default_value = "logs", env)]
+    log_directory: String,
 
     #[structopt(long, help = "The Netshot API URL", env)]
     netshot_url: String,
@@ -80,7 +83,7 @@ struct Opt {
 
 /// Main application entrypoint
 fn main() -> Result<(), Error> {
-    let opt = Opt::from_args();
+    let opt: Opt = Opt::from_args();
     let mut logging_level = "info";
     let mut duplicate_level = Duplicate::Info;
     if opt.debug {
@@ -88,8 +91,8 @@ fn main() -> Result<(), Error> {
         duplicate_level = Duplicate::Debug;
     }
 
-    Logger::with_str(logging_level)
-        .log_target(LogTarget::File)
+    Logger::try_with_str(logging_level)?
+        .log_to_file(FileSpec::default().directory(opt.clone().log_directory))
         .duplicate_to_stdout(duplicate_level)
         .start()
         .unwrap();
@@ -185,13 +188,11 @@ fn main() -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use flexi_logger::{LogTarget, Logger};
+    use flexi_logger::{ Logger, AdaptiveFormat};
 
     #[ctor::ctor]
     fn enable_logging() {
-        Logger::with_str("debug")
-            .log_target(LogTarget::StdOut)
-            .start()
-            .unwrap();
+        Logger::try_with_str("info").unwrap()
+          .adaptive_format_for_stderr(AdaptiveFormat::Detailed);
     }
 }
