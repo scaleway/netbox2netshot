@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::{Error, Result};
-use flexi_logger::{Duplicate, Logger, FileSpec};
+use flexi_logger::{Duplicate, FileSpec, Logger};
 use structopt::StructOpt;
 
 use rest::{netbox, netshot};
@@ -138,7 +138,7 @@ fn main() -> Result<(), Error> {
     }
 
     log::debug!("Building netbox devices hashmap");
-    let mut netbox_hashmap: HashMap<_, _> = netbox_devices
+    let netbox_hashmap: HashMap<_, _> = netbox_devices
         .into_iter()
         .filter_map(|device| match device.primary_ip4 {
             Some(x) => Some((
@@ -188,11 +188,12 @@ fn main() -> Result<(), Error> {
 
 #[cfg(test)]
 mod tests {
-    use flexi_logger::{ Logger, AdaptiveFormat};
+    use flexi_logger::{AdaptiveFormat, Logger};
 
     #[ctor::ctor]
     fn enable_logging() {
-        Logger::try_with_str("info").unwrap()
-          .adaptive_format_for_stderr(AdaptiveFormat::Detailed);
+        Logger::try_with_str("info")
+            .unwrap()
+            .adaptive_format_for_stderr(AdaptiveFormat::Detailed);
     }
 }
