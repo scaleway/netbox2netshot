@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 const PATH_DEVICES: &str = "/api/devices";
+const PATH_DEVICES_SEARCH: &str = "/api/devices/search";
 
 #[derive(Debug)]
 pub struct NetshotClient {
@@ -51,6 +52,27 @@ pub struct NewDeviceCreatedPayload {
     #[serde(rename = "id")]
     pub task_id: u32,
     pub status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct UpdateDevicePayload {
+    enabled: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeviceUpdatedPayload {
+    pub status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct DeviceSearchQueryPayload {
+    query: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DeviceSearchResultPayload {
+    pub query: String,
+    pub devices: Vec<Device>,
 }
 
 impl NetshotClient {
@@ -111,7 +133,7 @@ impl NetshotClient {
     /// Register a given IP into Netshot and return the corresponding device
     pub fn register_device(
         &self,
-        ip_address: &String,
+        ip_address: String,
         domain_id: u32,
     ) -> Result<NewDeviceCreatedPayload, Error> {
         log::info!("Registering new device with IP {}", ip_address);
@@ -142,6 +164,106 @@ impl NetshotClient {
         );
 
         Ok(device_registration)
+    }
+
+    /// Search for a device
+    pub fn search_device(&self, query_string: String) -> Result<DeviceSearchResultPayload, Error> {
+        let url = format!("{}{}", self.url, PATH_DEVICES_SEARCH);
+
+        let query = DeviceSearchQueryPayload {
+            query: query_string.clone(),
+        };
+
+        let response = self.client.post(url).json(&query).send()?;
+
+        if !response.status().is_success() {
+            log::warn!(
+                "Failed to search for device with query `{}`: {}",
+                query_string.clone(),
+                response.status().to_string()
+            );
+            return Err(anyhow!(
+                "Failed to search for device with query: {}",
+                query_string
+            ));
+        }
+
+        let search_result: DeviceSearchResultPayload = response.json()?;
+        log::debug!(
+            "Found {} devices with the given search",
+            search_result.devices.len(),
+        );
+
+        Ok(search_result)
+    }
+
+    /// Set the given device to a given state (enabled/disabled)
+    fn set_device_enabled(
+        &self,
+        ip_address: String,
+        enabled: bool,
+    ) -> Result<Option<DeviceUpdatedPayload>, Error> {
+        log::info!(
+            "Setting device with IP {} to enabled={}",
+            ip_address,
+            enabled
+        );
+
+        let state = UpdateDevicePayload { enabled: enabled };
+
+        // Search for the device ID
+        let response = self.search_device(format!("[IP] IS {}", ip_address))?;
+        let device = response.devices.first().unwrap();
+
+        if !enabled && device.status == "DISABLED" {
+            log::warn!(
+                "Device {}({}) is already disabled, skipping",
+                device.name,
+                ip_address
+            );
+            return Ok(Option::None);
+        } else if enabled && device.status != "DISABLED" {
+            log::warn!(
+                "Device {}({}) is already enabled, skipping",
+                device.name,
+                ip_address
+            );
+            return Ok(Option::None);
+        }
+
+        let url = format!("{}{}/{}", self.url, PATH_DEVICES, device.id);
+        let response = self.client.put(url).json(&state).send()?;
+
+        if !response.status().is_success() {
+            log::warn!(
+                "Failed to update state for device {}, got status {}",
+                ip_address,
+                response.status().to_string()
+            );
+            return Err(anyhow!(
+                "Failed to update state for device {}, got status {}",
+                ip_address,
+                response.status().to_string()
+            ));
+        }
+
+        let device_update: DeviceUpdatedPayload = response.json()?;
+        log::debug!("Device state of {} set to enabled={}", ip_address, enabled);
+
+        Ok(Option::Some(device_update))
+    }
+
+    /// Disable a given device
+    pub fn disable_device(
+        &self,
+        ip_address: String,
+    ) -> Result<Option<DeviceUpdatedPayload>, Error> {
+        self.set_device_enabled(ip_address, false)
+    }
+
+    /// Enable a given device
+    pub fn enable_device(&self, ip_address: String) -> Result<Option<DeviceUpdatedPayload>, Error> {
+        self.set_device_enabled(ip_address, true)
     }
 }
 
@@ -191,9 +313,50 @@ mod tests {
             .create();
 
         let client = NetshotClient::new(url.clone(), String::new(), None, None, None).unwrap();
-        let registration = client.register_device(&String::from("1.2.3.4"), 2).unwrap();
+        let registration = client.register_device(String::from("1.2.3.4"), 2).unwrap();
 
         assert_eq!(registration.task_id, 504);
         assert_eq!(registration.status, "SCHEDULED");
+    }
+
+    #[test]
+    fn search_devices() {
+        let url = mockito::server_url();
+
+        let _mock = mockito::mock("POST", PATH_DEVICES_SEARCH)
+            .match_query(mockito::Matcher::Any)
+            .match_body(r#"{"query":"[IP] IS 1.2.3.4"}"#)
+            .with_body_from_file("tests/data/netshot/search.json")
+            .create();
+
+        let client = NetshotClient::new(url.clone(), String::new(), None, None, None).unwrap();
+        let result = client
+            .search_device(String::from("[IP] IS 1.2.3.4"))
+            .unwrap();
+
+        assert_eq!(result.devices.len(), 2);
+        assert_eq!(result.query, "[IP] IS 1.2.3.4");
+    }
+
+    #[test]
+    fn disable_device() {
+        let url = mockito::server_url();
+
+        let _mock = mockito::mock("PUT", format!("{}/{}", PATH_DEVICES, 2318).as_str())
+            .match_query(mockito::Matcher::Any)
+            .match_body(r#"{"enabled":false}"#)
+            .with_body_from_file("tests/data/netshot/disable_device.json")
+            .create();
+
+        let _mock2 = mockito::mock("POST", PATH_DEVICES_SEARCH)
+            .match_query(mockito::Matcher::Any)
+            .match_body(r#"{"query":"[IP] IS 1.2.3.4"}"#)
+            .with_body_from_file("tests/data/netshot/search.json")
+            .create();
+
+        let client = NetshotClient::new(url.clone(), String::new(), None, None, None).unwrap();
+        let registration = client.disable_device(String::from("1.2.3.4")).unwrap();
+
+        assert_eq!(registration.unwrap().status, "DISABLED");
     }
 }

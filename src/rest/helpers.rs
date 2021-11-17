@@ -1,4 +1,4 @@
-use anyhow::{Error};
+use anyhow::Error;
 use reqwest::Identity;
 use std::fs::File;
 use std::io::Read;

@@ -121,8 +121,8 @@ fn main() -> Result<(), Error> {
     log::info!("Getting devices list from Netshot");
     let netshot_devices = netshot_client.get_devices()?;
 
-    log::debug!("Building netshot devices hashmap");
-    let netshot_hashmap: HashMap<_, _> = netshot_devices
+    log::debug!("Building netshot devices simplified inventory");
+    let netshot_simplified_inventory: HashMap<_, _> = netshot_devices
         .into_iter()
         .map(|dev| (dev.management_address.ip, dev.name))
         .collect();
@@ -137,8 +137,8 @@ fn main() -> Result<(), Error> {
         netbox_devices.append(&mut vms);
     }
 
-    log::debug!("Building netbox devices hashmap");
-    let netbox_hashmap: HashMap<_, _> = netbox_devices
+    log::debug!("Building netbox devices simplified inventory");
+    let netbox_simplified_devices: HashMap<_, _> = netbox_devices
         .into_iter()
         .filter_map(|device| match device.primary_ip4 {
             Some(x) => Some((
@@ -156,30 +156,56 @@ fn main() -> Result<(), Error> {
         .collect();
 
     log::debug!(
-        "Hashmaps: Netbox({}), Netshot({})",
-        netbox_hashmap.len(),
-        netshot_hashmap.len()
+        "Simplified inventories: Netbox({}), Netshot({})",
+        netbox_simplified_devices.len(),
+        netshot_simplified_inventory.len()
     );
 
-    log::debug!("Comparing HashMaps");
-    let mut missing_devices: Vec<String> = Vec::new();
-    for (ip, hostname) in netbox_hashmap {
-        match netshot_hashmap.get(&ip) {
+    log::debug!("Comparing inventories");
+
+    let mut devices_to_register: Vec<String> = Vec::new();
+    for (ip, hostname) in &netbox_simplified_devices {
+        match netshot_simplified_inventory.get(ip) {
             Some(x) => log::debug!("{}({}) is present on both", x, ip),
             None => {
                 log::debug!("{}({}) missing from Netshot", hostname, ip);
-                missing_devices.push(ip);
+                devices_to_register.push(ip.clone());
             }
         }
     }
 
-    log::info!("Found {} devices missing on Netshot", missing_devices.len());
+    let mut devices_to_disable: Vec<String> = Vec::new();
+    for (ip, hostname) in &netshot_simplified_inventory {
+        match netbox_simplified_devices.get(ip) {
+            Some(x) => log::debug!("{}({}) is present on both", x, ip),
+            None => {
+                log::debug!("{}({}) missing from Netbox", hostname, ip);
+                devices_to_disable.push(ip.clone());
+            }
+        }
+    }
+
+    log::info!(
+        "Found {} devices missing on Netshot, to be added",
+        devices_to_register.len()
+    );
+    log::info!(
+        "Found {} devices missing on Netbox, to be disabled",
+        devices_to_disable.len()
+    );
 
     if !opt.check {
-        for device in missing_devices {
-            let registration = netshot_client.register_device(&device, opt.netshot_domain_id);
+        for device in devices_to_register {
+            let registration = netshot_client.register_device(device, opt.netshot_domain_id);
             if let Err(error) = registration {
                 log::warn!("Registration failure: {}", error);
+            }
+        }
+
+        for device in devices_to_disable {
+            let registration = netshot_client.disable_device(device);
+            if let Err(error) = registration {
+                log::warn!("Disable failure: {}", error);
             }
         }
     }
@@ -192,7 +218,7 @@ mod tests {
 
     #[ctor::ctor]
     fn enable_logging() {
-        Logger::try_with_str("info")
+        Logger::try_with_str("debug")
             .unwrap()
             .adaptive_format_for_stderr(AdaptiveFormat::Detailed);
     }
