@@ -121,10 +121,15 @@ fn main() -> Result<(), Error> {
     log::info!("Getting devices list from Netshot");
     let netshot_devices = netshot_client.get_devices()?;
 
+    let netshot_disabled_devices: Vec<&netshot::Device> = netshot_devices
+        .iter()
+        .filter(|dev| &dev.status == "DISABLED")
+        .collect();
+
     log::debug!("Building netshot devices simplified inventory");
-    let netshot_simplified_inventory: HashMap<_, _> = netshot_devices
-        .into_iter()
-        .map(|dev| (dev.management_address.ip, dev.name))
+    let netshot_simplified_inventory: HashMap<&String, &String> = netshot_devices
+        .iter()
+        .map(|dev| (&dev.management_address.ip, &dev.name))
         .collect();
 
     log::info!("Getting devices list from Netbox");
@@ -176,12 +181,27 @@ fn main() -> Result<(), Error> {
 
     let mut devices_to_disable: Vec<String> = Vec::new();
     for (ip, hostname) in &netshot_simplified_inventory {
-        match netbox_simplified_devices.get(ip) {
+        match netbox_simplified_devices.get(*ip) {
             Some(x) => log::debug!("{}({}) is present on both", x, ip),
             None => {
-                log::debug!("{}({}) missing from Netbox", hostname, ip);
-                devices_to_disable.push(ip.clone());
+                log::debug!("{}({}) to be disabled (missing on Netbox)", hostname, ip);
+                devices_to_disable.push(ip.to_string());
             }
+        }
+    }
+
+    let mut devices_to_enable: Vec<String> = Vec::new();
+    for device in &netshot_disabled_devices {
+        match netbox_simplified_devices.get(device.management_address.ip.as_str()) {
+            Some(_x) => {
+                log::debug!(
+                    "{}({}) to be enabled (present on Netbox)",
+                    device.name,
+                    device.management_address.ip
+                );
+                devices_to_enable.push(device.management_address.ip.clone());
+            }
+            None => {}
         }
     }
 
@@ -192,6 +212,10 @@ fn main() -> Result<(), Error> {
     log::info!(
         "Found {} devices missing on Netbox, to be disabled",
         devices_to_disable.len()
+    );
+    log::info!(
+        "Found {} devices disabled on Netshot but present on Netbox, to be enabled",
+        devices_to_enable.len()
     );
 
     if !opt.check {
@@ -206,6 +230,12 @@ fn main() -> Result<(), Error> {
             let registration = netshot_client.disable_device(device);
             if let Err(error) = registration {
                 log::warn!("Disable failure: {}", error);
+            }
+        }
+        for device in devices_to_enable {
+            let registration = netshot_client.enable_device(device);
+            if let Err(error) = registration {
+                log::warn!("Enable failure: {}", error);
             }
         }
     }
