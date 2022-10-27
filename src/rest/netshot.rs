@@ -293,7 +293,7 @@ mod tests {
             .create();
 
         let client = NetshotClient::new(url.clone(), String::new(), None, None, None).unwrap();
-        let devices = client.get_devices().unwrap();
+        let devices = client.get_devices(1).unwrap();
 
         assert_eq!(devices.len(), 1);
 
