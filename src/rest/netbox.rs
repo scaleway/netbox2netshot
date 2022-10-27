@@ -35,7 +35,7 @@ pub struct Device {
     pub primary_ip4: Option<PrimaryIP>,
 }
 
-/// Represent the API response from /api/devim/devices call
+/// Represent the API response from /api/dcim/devices call
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NetboxDCIMDeviceList {
     count: u32,

@@ -67,7 +67,8 @@ OPTIONS:
             The Netshot token [env: NETSHOT_TOKEN]
 
         --netshot-url <netshot-url>
-            The Netshot API URL [env: NETSHOT_URL=]```
+            The Netshot API URL [env: NETSHOT_URL=]
+```
 
 The query-string format need to be like this (url query string without the `?`):
 
