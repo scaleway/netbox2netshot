@@ -59,8 +59,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/rpmbuild/RPMS/x86_64/netbox2netshot-${{ steps.version.outputs.version }}-1.x86_64.rpm
-        asset_name: netbox2netshot-${{ steps.version.outputs.version }}-1.x86_64.rpm
+        asset_path: target/release/rpmbuild/RPMS/x86_64/netbox2netshot-${{ steps.version.outputs.version }}-1.rpm
+        asset_name: netbox2netshot-${{ steps.version.outputs.version }}-1.rpm
         asset_content_type: application/octet-stream
     - name: Upload deb package
       id: upload-deb
