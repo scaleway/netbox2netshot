@@ -121,8 +121,10 @@ impl NetshotClient {
     }
 
     /// Get devices registered in Netshot
-    pub fn get_devices(&self) -> Result<Vec<Device>, Error> {
-        let url = format!("{}{}", self.url, PATH_DEVICES);
+    pub fn get_devices(&self,
+                       domain_id: u32,
+    ) -> Result<Vec<Device>, Error> {
+        let url = format!("{}{}?group={}", self.url, PATH_DEVICES, domain_id);
         let devices: Vec<Device> = self.client.get(url).send()?.json()?;
 
         log::debug!("Got {} devices from Netshot", devices.len());
@@ -291,7 +293,7 @@ mod tests {
             .create();
 
         let client = NetshotClient::new(url.clone(), String::new(), None, None, None).unwrap();
-        let devices = client.get_devices().unwrap();
+        let devices = client.get_devices(1).unwrap();
 
         assert_eq!(devices.len(), 1);
 

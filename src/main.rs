@@ -119,7 +119,7 @@ fn main() -> Result<(), Error> {
     netshot_client.ping()?;
 
     log::info!("Getting devices list from Netshot");
-    let netshot_devices = netshot_client.get_devices()?;
+    let netshot_devices = netshot_client.get_devices(opt.netshot_domain_id)?;
 
     let netshot_disabled_devices: Vec<&netshot::Device> = netshot_devices
         .iter()
