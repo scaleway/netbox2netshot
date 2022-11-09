@@ -32,43 +32,14 @@ jobs:
       run: cargo deb
     - name: Build rpm package
       run: cargo rpm build
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create release
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
+        name: Release ${{ github.ref }} 
         prerelease: false
-    - name: Upload release binary
-      id: upload-release-binary
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/netbox2netshot
-        asset_name: netbox2netshot-${{ steps.version.outputs.version }}
-        asset_content_type: application/octet-stream
-    - name: Upload rpm package
-      id: upload-rpm
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/release/rpmbuild/RPMS/x86_64/netbox2netshot-${{ steps.version.outputs.version }}-1.rpm
-        asset_name: netbox2netshot-${{ steps.version.outputs.version }}-1.rpm
-        asset_content_type: application/octet-stream
-    - name: Upload deb package
-      id: upload-deb
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: target/debian/netbox2netshot_${{ steps.version.outputs.version }}_amd64.deb
-        asset_name: netbox2netshot_${{ steps.version.outputs.version }}_amd64.deb
-        asset_content_type: application/octet-stream
+        draft: false
+        files: |
+          target/release/netbox2netshot
+          target/debian/*.deb
+          target/release/rpmbuild/RPMS/x86_64/*.rpm
