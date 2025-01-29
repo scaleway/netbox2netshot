@@ -129,7 +129,7 @@ fn main() -> Result<(), Error> {
     log::debug!("Building netshot devices simplified inventory");
     let netshot_simplified_inventory: HashMap<&String, &String> = netshot_devices
         .iter()
-        .map(|dev| (&dev.management_address.ip, &dev.name))
+        .map(|dev| (&dev.management_address, &dev.name))
         .collect();
 
     log::info!("Getting devices list from Netbox");
@@ -192,14 +192,14 @@ fn main() -> Result<(), Error> {
 
     let mut devices_to_enable: Vec<String> = Vec::new();
     for device in &netshot_disabled_devices {
-        match netbox_simplified_devices.get(device.management_address.ip.as_str()) {
+        match netbox_simplified_devices.get(&device.management_address) {
             Some(_x) => {
                 log::debug!(
                     "{}({}) to be enabled (present on Netbox)",
                     device.name,
-                    device.management_address.ip
+                    device.management_address
                 );
-                devices_to_enable.push(device.management_address.ip.clone());
+                devices_to_enable.push(device.management_address.clone());
             }
             None => {}
         }

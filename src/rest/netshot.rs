@@ -18,20 +18,11 @@ pub struct NetshotClient {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ManagementAddress {
-    #[serde(rename = "prefixLength")]
-    pub prefix_length: u8,
-    #[serde(rename = "addressUsage")]
-    pub address_usage: String,
-    pub ip: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct Device {
     pub id: u32,
     pub name: String,
     #[serde(rename = "mgmtAddress")]
-    pub management_address: ManagementAddress,
+    pub management_address: String,
     pub status: String,
 }
 
@@ -301,7 +292,7 @@ mod tests {
 
         assert_eq!(device.name, "test-device");
         assert_eq!(device.id, 1 as u32);
-        assert_eq!(device.management_address.ip, "1.2.3.4");
+        assert_eq!(device.management_address, "1.2.3.4");
     }
 
     #[test]
