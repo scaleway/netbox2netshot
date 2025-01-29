@@ -2,64 +2,64 @@ use std::collections::HashMap;
 
 use anyhow::{Error, Result};
 use flexi_logger::{Duplicate, FileSpec, Logger};
-use structopt::StructOpt;
+use clap::Parser;
 
 use rest::{netbox, netshot};
 
 mod common;
 mod rest;
 
-#[derive(Debug, StructOpt, Clone)]
-#[structopt(
+#[derive(Debug, Parser, Clone)]
+#[command(
     name = "netbox2netshot",
     about = "Synchronization tool between netbox and netshot"
 )]
 struct Opt {
-    #[structopt(short, long, help = "Enable debug/verbose mode")]
+    #[arg(short, long, help = "Enable debug/verbose mode")]
     debug: bool,
 
-    #[structopt(long, help = "The directory to log to", default_value = "logs", env)]
+    #[arg(long, help = "The directory to log to", default_value = "logs", env)]
     log_directory: String,
 
-    #[structopt(long, help = "The Netshot API URL", env)]
+    #[arg(long, help = "The Netshot API URL", env)]
     netshot_url: String,
 
-    #[structopt(
+    #[arg(
         long,
         help = "The TLS certificate to use to authenticate to Netshot (PKCS12 format)",
         env
     )]
     netshot_tls_client_certificate: Option<String>,
 
-    #[structopt(long, help = "The optional password for the netshot PKCS12 file", env)]
+    #[arg(long, help = "The optional password for the netshot PKCS12 file", env)]
     netshot_tls_client_certificate_password: Option<String>,
 
-    #[structopt(long, help = "The Netshot token", env, hide_env_values = true)]
+    #[arg(long, help = "The Netshot token", env, hide_env_values = true)]
     netshot_token: String,
 
-    #[structopt(long, help = "The domain ID to use when importing a new device", env)]
+    #[arg(long, help = "The domain ID to use when importing a new device", env)]
     netshot_domain_id: u32,
 
-    #[structopt(long, help = "HTTP(s) proxy to use to connect to Netshot", env)]
+    #[arg(long, help = "HTTP(s) proxy to use to connect to Netshot", env)]
     netshot_proxy: Option<String>,
 
-    #[structopt(long, help = "The Netbox API URL", env)]
+    #[arg(long, help = "The Netbox API URL", env)]
     netbox_url: String,
 
-    #[structopt(
+    #[arg(
         long,
         help = "The TLS certificate to use to authenticate to Netbox (PKCS12 format)",
         env
     )]
     netbox_tls_client_certificate: Option<String>,
 
-    #[structopt(long, help = "The optional password for the netbox PKCS12 file", env)]
+    #[arg(long, help = "The optional password for the netbox PKCS12 file", env)]
     netbox_tls_client_certificate_password: Option<String>,
 
-    #[structopt(long, help = "The Netbox token", env, hide_env_values = true)]
+    #[arg(long, help = "The Netbox token", env, hide_env_values = true)]
     netbox_token: Option<String>,
 
-    #[structopt(
+    #[arg(
         long,
         default_value = "",
         help = "The querystring to use to select the devices from netbox",
@@ -67,23 +67,23 @@ struct Opt {
     )]
     netbox_devices_filter: String,
 
-    #[structopt(
+    #[arg(
         long,
         help = "The querystring to use to select the VM from netbox",
         env
     )]
     netbox_vms_filter: Option<String>,
 
-    #[structopt(long, help = "HTTP(s) proxy to use to connect to Netbox", env)]
+    #[arg(long, help = "HTTP(s) proxy to use to connect to Netbox", env)]
     netbox_proxy: Option<String>,
 
-    #[structopt(short, long, help = "Check mode, will not push any change to Netshot")]
+    #[arg(short, long, help = "Check mode, will not push any change to Netshot")]
     check: bool,
 }
 
 /// Main application entrypoint
 fn main() -> Result<(), Error> {
-    let opt: Opt = Opt::from_args();
+    let opt: Opt = Opt::parse();
     let mut logging_level = "info";
     let mut duplicate_level = Duplicate::Info;
     if opt.debug {
