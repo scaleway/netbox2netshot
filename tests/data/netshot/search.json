@@ -5,22 +5,14 @@
       "id": 2318,
       "name": "test-device.dc",
       "family": "Cisco Catalyst 2900",
-      "mgmtAddress": {
-        "prefixLength": 0,
-        "addressUsage": "PRIMARY",
-        "ip": "1.2.3.4"
-      },
+      "mgmtAddress": "1.2.3.4",
       "status": "INPRODUCTION"
     },
     {
       "id": 2318,
       "name": "test-device.dc",
       "family": "Cisco Catalyst 2900",
-      "mgmtAddress": {
-        "prefixLength": 0,
-        "addressUsage": "PRIMARY",
-        "ip": "1.2.3.4"
-      },
+      "mgmtAddress": "1.2.3.4",
       "status": "INPRODUCTION"
     }
   ]

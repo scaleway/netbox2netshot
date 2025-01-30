@@ -3,11 +3,7 @@
     "id": 1,
     "name": "test-device",
     "family": "Nexus 9000 C93108TC-EX",
-    "mgmtAddress": {
-      "prefixLength": 0,
-      "addressUsage": "PRIMARY",
-      "ip": "1.2.3.4"
-    },
+    "mgmtAddress": "1.2.3.4",
     "status": "INPRODUCTION"
   }
 ]
